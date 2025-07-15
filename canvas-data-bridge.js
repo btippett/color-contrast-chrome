@@ -13,24 +13,26 @@ class CanvasDataBridge {
         // Get canvas data from offscreen document
         try {
             const response = await new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({
-                    action: 'getCanvasData',
-                    target: 'offscreen'
-                }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        reject(chrome.runtime.lastError);
-                    } else {
-                        resolve(response);
+                chrome.runtime.sendMessage(
+                    {
+                        action: 'getCanvasData',
+                        target: 'offscreen'
+                    },
+                    (response) => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(response);
+                        }
                     }
-                });
+                );
             });
-
-            if (response && response.canvasData) {
+            if (response?.canvasData) {
                 this.canvasData = response.canvasData;
                 await this.createCanvasFromData();
             }
         } catch (error) {
-            console.error('Error getting canvas data:', error);
+            console.error(`Error getting canvas data:`, error);
             // Retry after a short delay
             setTimeout(() => this.init(), 500);
         }
@@ -38,17 +40,14 @@ class CanvasDataBridge {
 
     async createCanvasFromData() {
         if (!this.canvasData) return;
-
         return new Promise((resolve) => {
             const image = new Image();
             image.onload = () => {
                 this.canvas = document.createElement('canvas');
                 this.canvas.width = image.width;
                 this.canvas.height = image.height;
-
                 const context = this.canvas.getContext('2d');
                 context.drawImage(image, 0, 0);
-
                 this.ready = true;
                 resolve();
             };
@@ -67,9 +66,5 @@ class CanvasDataBridge {
 
 // Initialize the bridge
 const canvasDataBridge = new CanvasDataBridge();
-
-// Make it available globally
 window.canvasDataBridge = canvasDataBridge;
-
-// Auto-initialize
 canvasDataBridge.init();
