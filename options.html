@@ -5,10 +5,11 @@ Read license.txt for licensing information.
 -->
 
 
-<html>
+<html lang="en">
  <head>
   <title>WCAG 2.0 Color Contrast Analyzer Options</title>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
   body {
     font-family: arial, sans-serif;
@@ -153,28 +154,28 @@ Read license.txt for licensing information.
     <h4 id="WCAGLevel"></h4>
     <div class="section-content">
      <div>
-       <input id="WCAG-aa-small" type="radio" name="level"><label id="WCAG-aa-small-level" for="WCAG-aa-small"></label><br />
-       <input id="WCAG-aa-large" type="radio" name="level"><label id="WCAG-aa-large-level" for="WCAG-aa-large"></label><br />
-       <input id="WCAG-aaa-small" type="radio" name="level"><label id="WCAG-aaa-small-level" for="WCAG-aaa-small"></label><br />
-       <input id="WCAG-aaa-large" type="radio" name="level"><label id="WCAG-aaa-large-level" for="WCAG-aaa-large"></label>
+      <input id="WCAG-aa-small" type="radio" name="level" title="WCAG AA Small"><label id="WCAG-aa-small-level" for="WCAG-aa-small">AA Small</label><br />
+      <input id="WCAG-aa-large" type="radio" name="level" title="WCAG AA Large"><label id="WCAG-aa-large-level" for="WCAG-aa-large">AA Large</label><br />
+      <input id="WCAG-aaa-small" type="radio" name="level" title="WCAG AAA Small"><label id="WCAG-aaa-small-level" for="WCAG-aaa-small">AAA Small</label><br />
+      <input id="WCAG-aaa-large" type="radio" name="level" title="WCAG AAA Large"><label id="WCAG-aaa-large-level" for="WCAG-aaa-large">AAA Large</label>
        </div>
      <div class="clear"></div>
     </div>
 
-	<h4 id="pixelRadiusHeader"></h4>
-	<div class="section-content">
+  <h4 id="pixelRadiusHeader"></h4>
+  <div class="section-content">
      <div>
        <label id="pixel-radius-label" for="pixel-radius-input"></label>
-       <select id="pixel-radius-input" type="radio" name="pixel-radius-level">
-       	<option value="1">1</option>
-  		<option value="2">2</option>
-  		<option value="3">3</option>
-       </select>
+      <select id="pixel-radius-input" name="pixel-radius-level" title="Pixel radius">
+       <option value="1">1</option>
+       <option value="2">2</option>
+       <option value="3">3</option>
+      </select>
        </div>
      <div class="clear"></div>
     </div>
 
-    <div class="closeBtn"><button id="saveAndClose"></button>
+    <div class="closeBtn"><button id="saveAndClose" title="Save and close">Save and Close</button>
     </div>
   </div>
 
