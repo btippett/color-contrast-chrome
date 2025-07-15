@@ -50,10 +50,7 @@
    ],
 
    "host_permissions": [
-      "http://*/*",
-      "https://*/*",
-      "ftp://*/*",
-      "file://*/*"
+      "<all_urls>"
    ],
 
    "web_accessible_resources": [ {
