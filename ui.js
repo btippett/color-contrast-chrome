@@ -4,73 +4,69 @@ Read license.txt for licensing information.
 
 */
 
-var UI = {
-
-  show: function(element) {
-    if (UI.getStyle(element, 'display') == 'none') {
+class UI {
+  static show(element) {
+    if (UI.getStyle(element, 'display') === 'none') {
       // Set display value to be defined by style sheet
-      var cssRules = window.getMatchedCSSRules(element, '', true);
-      var ruleLength = cssRules.length;
-      var display;
-      for (var i = ruleLength - 1; i >= 0 ; --i) {
+      const cssRules = window.getMatchedCSSRules(element, '', true);
+      const ruleLength = cssRules.length;
+      let display;
+      for (let i = ruleLength - 1; i >= 0; --i) {
         display = cssRules[i].style.display;
-        if (display && display != 'none') {
+        if (display && display !== 'none') {
           element.style.display = display;
           return;
         }
       }
 
       // Set display value to be UA default value
-      var tmpElement = document.createElement(element.nodeName);
+      const tmpElement = document.createElement(element.nodeName);
       document.body.appendChild(tmpElement);
       display = UI.getStyle(tmpElement, 'display');
       document.body.removeChild(tmpElement);
       element.style.display = display;
     }
-  },
+  }
 
-  hide: function(element) {
+  static hide(element) {
     element.style.display = 'none';
-  },
+  }
 
-  setStyle: function(element) {
-    var argLength = arguments.length;
-    var arg1 = arguments[1];
-    if (argLength == 2 && arg1.constructor == Object) {
-      for (var prop in arg1) {
-        var camelCasedProp = prop.replace(/-([a-z])/gi, function(n, letter) {
-          return letter.toUpperCase();
-        });
-        element.style[camelCasedProp] = arg1[prop];
+  static setStyle(element, ...args) {
+    if (args.length === 1 && typeof args[0] === 'object') {
+      for (const prop in args[0]) {
+        const camelCasedProp = prop.replace(/-([a-z])/gi, (n, letter) => letter.toUpperCase());
+        element.style[camelCasedProp] = args[0][prop];
       }
-    } else if (argLength == 3)
-      element.style[arg1] = arguments[2];
-  },
+    } else if (args.length === 2) {
+      element.style[args[0]] = args[1];
+    }
+  }
 
-  getStyle: function(element, property) {
+  static getStyle(element, property) {
     return window.getComputedStyle(element)[property];
-  },
+  }
 
-  addClass: function(element, className) {
-    var classes = element.className.split(' ');
+  static addClass(element, className) {
+    const classes = element.className.split(' ');
     classes.push(className);
     element.className = classes.join(' ');
-  },
+  }
 
-  removeClass: function(element, className) {
-    var classes = element.className.split(' ');
-    var index = classes.indexOf(className);
+  static removeClass(element, className) {
+    const classes = element.className.split(' ');
+    const index = classes.indexOf(className);
     if (index >= 0) {
       classes.splice(index, 1);
       element.className = classes.join(' ');
     }
-  },
+  }
 
-  addStyleSheet: function(path) {
-    var link = document.createElement('link');
+  static addStyleSheet(path) {
+    const link = document.createElement('link');
     link.setAttribute('type', 'text/css');
     link.setAttribute('rel', 'stylesheet');
     link.setAttribute('href', path);
     document.head.appendChild(link);
   }
-};
+}
