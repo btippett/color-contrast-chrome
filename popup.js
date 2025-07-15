@@ -1,7 +1,7 @@
 /*
- 
+
  Read license.txt for licensing information.
- 
+
  */
 function trapEnterKey(obj, evt, f) {
     // if enter key pressed
@@ -50,31 +50,32 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 function toDo(what) {
-    chrome.runtime.getBackgroundPage(function(backgroundPage) {
-        switch (what) {
-            case 'capture_screen':
-                backgroundPage.screenshot.captureScreen();
-                window.close();
-                break;
-            case 'capture_window':
-                backgroundPage.screenshot.captureWindow();
-                window.close();
-                break;
-            case 'capture_area':
-                backgroundPage.screenshot.showSelectionArea();
-                window.close();
-                break;
-            case 'capture_webpage':
-                backgroundPage.screenshot.captureWebpage();
-                $('loadDiv').style.display = 'block';
-                $('item').style.display = 'none';
-                break;
-            case 'capture_special_page':
-                backgroundPage.screenshot.captureSpecialPage();
-                window.close();
-                break;
+    console.log('Popup sending message:', what);
+
+    // Send message to service worker instead of accessing background page directly
+    chrome.runtime.sendMessage({
+        msg: what,
+        target: 'background'
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error('Error sending message:', chrome.runtime.lastError.message);
+        } else {
+            console.log('Message sent successfully, response:', response);
         }
     });
+
+    switch (what) {
+        case 'capture_screen':
+        case 'capture_window':
+        case 'capture_area':
+        case 'capture_special_page':
+            window.close();
+            break;
+        case 'capture_webpage':
+            $('loadDiv').style.display = 'block';
+            $('item').style.display = 'none';
+            break;
+    }
 }
 
 function i18nReplace(id, name) {
@@ -86,6 +87,20 @@ function resizeDivWidth(id, width) {
 }
 
 function init() {
+    console.log('Popup initialized, testing service worker connection...');
+
+    // Test service worker connection
+    chrome.runtime.sendMessage({
+        msg: 'test_connection',
+        target: 'background'
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error('Service worker connection test failed:', chrome.runtime.lastError.message);
+        } else {
+            console.log('Service worker connection test successful:', response);
+        }
+    });
+
     i18nReplace('captureSpecialPageText', 'capture_window_warning');
     i18nReplace('capturing', 'capturing');
     i18nReplace('captureScreenText', 'capture_screen');
@@ -97,14 +112,14 @@ function init() {
     $('option').addEventListener('click', function() {
         chrome.tabs.create({url: 'options.html'});
     }, false);
-    
+
     $('option').addEventListener('keydown', function(e) {
         trapEnterKey(this, e, function() {
             chrome.tabs.create({url: 'options.html'});
         })
     }, false);
-    
-    
+
+
     if (HotKey.isEnabled()) {
         $('captureWindowShortcut').style.display = 'inline';
         $('captureAreaShortcut').style.display = 'inline';
@@ -157,7 +172,7 @@ function init() {
                     resizeDivWidth('captureWindowText', textWidth);
                     resizeDivWidth('captureAreaText', textWidth);
                     resizeDivWidth('captureWebpageText', textWidth);
-                    var bg = chrome.extension.getBackgroundPage();
+                    // Note: Background page access removed for MV3 compatibility
                     //if (bg.screenshot.isThisPlatform('mac')) {
                     //$('captureAreaShortcut').innerText = '\u2325\u2318R';
                     //$('captureWindowShortcut').innerText = '\u2325\u2318V';

@@ -5,25 +5,21 @@ Read license.txt for licensing information.
 */
 
 var HotKey = (function() {
+  // In-memory storage for MV3 service worker compatibility
+  var memoryStorage = {
+    'hot_key_enabled': 'true',
+    'area_capture_hot_key': 'R',
+    'viewport_capture_hot_key': 'V',
+    'fullpage_capture_hot_key': 'H',
+    'screen_capture_hot_key': 'P'
+  };
+
   return {
     setup: function(plugin) {
-      // Default enable hot key for capture.
-      if (!localStorage.getItem('hot_key_enabled'))
-        localStorage.setItem('hot_key_enabled', true);
-
-      // Set default hot key of capture, R V H P.
-      if (!this.get('area'))
-        this.set('area', 'R');
-      if (!this.get('viewport'))
-        this.set('viewport', 'V');
-      if (!this.get('fullpage'))
-        this.set('fullpage', 'H');
-      if (!this.get('screen'))
-        this.set('screen', 'P');
-
+      // For MV3 compatibility, we use defaults without localStorage
       var screenCaptureHotKey = this.get('screen');
       if (this.isEnabled() &&
-          !plugin.setHotKey(screenCaptureHotKey.charCodeAt(0))) {
+          plugin && !plugin.setHotKey(screenCaptureHotKey.charCodeAt(0))) {
         this.set('screen', '@'); // Disable hot key for screen capture.
       }
     },
@@ -35,11 +31,11 @@ var HotKey = (function() {
      */
     set: function(type, value) {
       var key = type + '_capture_hot_key';
-      localStorage.setItem(key, value);
+      memoryStorage[key] = value;
     },
 
     get: function(type) {
-      return localStorage.getItem(type + '_capture_hot_key');
+      return memoryStorage[type + '_capture_hot_key'] || '';
     },
 
     getCharCode: function(type) {
@@ -47,16 +43,18 @@ var HotKey = (function() {
     },
 
     enable: function() {
-      localStorage.setItem('hot_key_enabled', true);
+      memoryStorage['hot_key_enabled'] = 'true';
     },
 
     disable: function(bg) {
-      localStorage.setItem('hot_key_enabled', false);
-      bg.plugin.disableScreenCaptureHotKey();
+      memoryStorage['hot_key_enabled'] = 'false';
+      if (bg && bg.plugin) {
+        bg.plugin.disableScreenCaptureHotKey();
+      }
     },
 
     isEnabled: function() {
-      return localStorage.getItem('hot_key_enabled') == 'true';
+      return memoryStorage['hot_key_enabled'] === 'true';
     }
   }
 })();

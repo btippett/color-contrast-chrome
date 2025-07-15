@@ -152,7 +152,7 @@ var page = {
     if (docElement.clientHeight == body.scrollHeight &&
         docElement.clientWidth == body.scrollWidth)
       return;
-    
+
     if (!this.fixedElements_.length) {
       this.cacheVisibleFixedPositionedElements();
     }
@@ -221,7 +221,7 @@ var page = {
     });
     this.modifiedBottomRightFixedElements = [];
   },
-  
+
   hideAllFixedPositionedElements: function() {
     this.fixedElements_.forEach(function(element) {
       element[1].style.visibility = 'hidden';
@@ -245,17 +245,29 @@ var page = {
   },
 
   getOriginalViewPortWidth: function() {
-    chrome.runtime.sendMessage({ msg: 'original_view_port_width'},
-      function(originalViewPortWidth) {
-        if (originalViewPortWidth) {
-          page.originalViewPortWidth = page.hasScrollBar('y') ?
-            originalViewPortWidth - page.defaultScrollBarWidth : originalViewPortWidth;
-        } else {
-          page.originalViewPortWidth = document.documentElement.clientWidth;
-        }
-      });
+    // Add error handling for MV3 service worker communication
+    try {
+      chrome.runtime.sendMessage({ msg: 'original_view_port_width'},
+        function(originalViewPortWidth) {
+          if (chrome.runtime.lastError) {
+            console.warn('Service worker communication error:', chrome.runtime.lastError);
+            page.originalViewPortWidth = document.documentElement.clientWidth;
+            return;
+          }
+
+          if (originalViewPortWidth) {
+            page.originalViewPortWidth = page.hasScrollBar('y') ?
+              originalViewPortWidth - page.defaultScrollBarWidth : originalViewPortWidth;
+          } else {
+            page.originalViewPortWidth = document.documentElement.clientWidth;
+          }
+        });
+    } catch (error) {
+      console.warn('Error communicating with service worker:', error);
+      page.originalViewPortWidth = document.documentElement.clientWidth;
+    }
   },
-  
+
   calculateSizeAfterZooming: function(originalSize) {
     var originalViewPortWidth = page.originalViewPortWidth;
     var currentViewPortWidth = document.documentElement.clientWidth;
@@ -361,7 +373,15 @@ var page = {
   * Send Message to background page
   */
   sendMessage: function(message) {
-    chrome.runtime.sendMessage(message);
+    try {
+      chrome.runtime.sendMessage(message, function(response) {
+        if (chrome.runtime.lastError) {
+          console.warn('Service worker communication error:', chrome.runtime.lastError);
+        }
+      });
+    } catch (error) {
+      console.warn('Error sending message to service worker:', error);
+    }
   },
 
   /**
@@ -496,7 +516,7 @@ var page = {
   createFloatLayer: function() {
     page.createDiv(document.body, 'sc_drag_area_protector');
   },
-  
+
   matchMarginValue: function(str) {
     return str.match(/\d+/);
   },
@@ -567,28 +587,28 @@ var page = {
     var areaElement = $('sc_drag_area');
     areaElement.style.left = page.getElementLeft(areaElement) + 'px';
     areaElement.style.top = page.getElementTop(areaElement) + 'px';
-    
+
     page.startX = page.getElementLeft(areaElement);
-    page.startY = page.getElementTop(areaElement); 
+    page.startY = page.getElementTop(areaElement);
     page.endX = page.getElementLeft(areaElement) + 250;
     page.endY = page.getElementTop(areaElement) + 150;
-    
+
     areaElement.style.width = '250px';
     areaElement.style.height = '150px';
     page.isSelectionAreaTurnOn = true;
     page.updateShadow(areaElement);
     page.updateSize();
   },
-  
+
   getElementLeft: function(obj) {
     return (document.body.scrollLeft +
-        (document.documentElement.clientWidth - 
+        (document.documentElement.clientWidth -
         obj.offsetWidth) / 2);
   },
-  
+
   getElementTop: function(obj) {
-    return (document.body.scrollTop + 
-        (document.documentElement.clientHeight - 200 - 
+    return (document.body.scrollTop +
+        (document.documentElement.clientHeight - 200 -
         obj.offsetHeight) / 2);
   },
 
@@ -846,7 +866,7 @@ var page = {
     var css = document.createElement('LINK');
     css.type = 'text/css';
     css.rel = 'stylesheet';
-    css.href = chrome.extension.getURL(cssResource);
+    css.href = chrome.runtime.getURL(cssResource);
     (document.head || document.body || document.documentElement).
         appendChild(css);
   },
@@ -855,7 +875,7 @@ var page = {
     var script = document.createElement("script");
     script.type = "text/javascript";
     script.charset = "utf-8";
-    script.src = chrome.extension.getURL(scriptResource);
+    script.src = chrome.runtime.getURL(scriptResource);
     (document.head || document.body || document.documentElement).
         appendChild(script);
   },
@@ -863,14 +883,14 @@ var page = {
   /**
   * Remove an element
   */
-  init: function() { 
+  init: function() {
     if (document.body.hasAttribute('screen_capture_injected')) {
       return;
     }
     if (isPageCapturable()) {
-      chrome.runtime.sendMessage({msg: 'page_capturable'});
+      page.sendMessage({msg: 'page_capturable'});
     } else {
-      chrome.runtime.sendMessage({msg: 'page_uncapturable'});
+      page.sendMessage({msg: 'page_uncapturable'});
     }
     this.injectCssResource('style.css');
     this.addMessageListener();

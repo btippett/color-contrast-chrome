@@ -1,7 +1,7 @@
 /*
- 
+
  Read license.txt for licensing information.
- 
+
  */
 
 
@@ -75,7 +75,8 @@ $('rescanButton').addEventListener('click', function(e) {
     location.reload();
 });
 
-var bg = chrome.extension.getBackgroundPage();
+// Remove background page access for MV3 compatibility
+// var bg = chrome.extension.getBackgroundPage();
 var canvas = new Canvas();
 
 var photoshop = {
@@ -103,24 +104,62 @@ var photoshop = {
     text: '',
     i18nReplace: i18nReplace,
     initCanvas: function() {
+        // Wait for canvas data bridge to be ready
+        if (!window.canvasDataBridge || !window.canvasDataBridge.isReady()) {
+            setTimeout(() => photoshop.initCanvas(), 100);
+            return;
+        }
+
+        const sourceCanvas = window.canvasDataBridge.getCanvas();
         $('canvas').width = $('mask-canvas').width = $('photo').style.width =
-                photoshop.canvas.width = bg.screenshot.canvas.width;
+                photoshop.canvas.width = sourceCanvas.width;
         $('canvas').height = $('mask-canvas').height = $('photo').style.height =
-                photoshop.canvas.height = bg.screenshot.canvas.height;
+                photoshop.canvas.height = sourceCanvas.height;
+
+        // Set willReadFrequently for better performance with getImageData
+        var canvasContext = $('canvas').getContext('2d', { willReadFrequently: true });
+        var maskCanvasContext = $('mask-canvas').getContext('2d', { willReadFrequently: true });
+
         var context = photoshop.canvas.getContext('2d');
-        context.drawImage(bg.screenshot.canvas, 0, 0);
-        context = $('canvas').getContext('2d');
-        context.drawImage(photoshop.canvas, 0, 0);
+        context.drawImage(sourceCanvas, 0, 0);
+        canvasContext.drawImage(photoshop.canvas, 0, 0);
         $('canvas').style.display = 'block';
+
+        // Initialize image analysis now that canvas is ready
+        if (typeof initImageAnalysis === 'function') {
+            console.log('Initializing image analysis...');
+            initImageAnalysis();
+        }
     },
     init: function() {
-        var isMac = bg.screenshot.isThisPlatform('mac');
-        if (isMac) {
+        // Use chrome.runtime.getPlatformInfo instead of background page
+        chrome.runtime.getPlatformInfo(function(info) {
+            var isMac = info.os === 'mac';
+            if (isMac) {
+                // Mac-specific initialization if needed
+            }
+            photoshop.initTools();
 
-        }
-        photoshop.initTools();
-        photoshop.initCanvas();
-        photoshop.tabTitle = bg.screenshot.tab.title;
+            // Listen for contrast mask ready event
+            document.addEventListener('contrastMaskReady', function(event) {
+                console.log('Contrast mask is ready and displayed');
+                // Update any UI elements that depend on the mask being visible
+                const maskCanvas = event.detail.canvas;
+                if (maskCanvas) {
+                    // Ensure the mask is visible
+                    maskCanvas.style.display = 'block';
+                    maskCanvas.style.visibility = 'visible';
+                }
+            });
+
+            photoshop.initCanvas();
+        });
+
+        // Get tab title from session storage instead of background page
+        chrome.storage.session.get('tabTitle', function(result) {
+            photoshop.tabTitle = result.tabTitle || 'Untitled';
+        });
+
         var showBoxHeight = function() {
             $('showBox').style.height = window.innerHeight - photoshop.offsetY - 1;
         }
@@ -140,11 +179,11 @@ var photoshop = {
         }
     },
     openOptionPage: function() {
-        chrome.tabs.create({url: chrome.extension.getURL("options.html")});
+        chrome.tabs.create({url: chrome.runtime.getURL("options.html")});
     },
     closeCurrentTab: function() {
-        chrome.tabs.getSelected(null, function(tab) {
-            chrome.tabs.remove(tab.id);
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            chrome.tabs.remove(tabs[0].id);
         });
     },
     finish: function() {
@@ -208,8 +247,8 @@ var photoshop = {
         else
             dataUrl = $('canvas').toDataURL('image/png');
 
-        // Here we use the plugin object in showimage.html 
-        // instead of the plugin object in background page, 
+        // Here we use the plugin object in showimage.html
+        // instead of the plugin object in background page,
         // so that the SaveScreenshot dialog will be a modal dialog.
         var pluginobj = document.getElementById('pluginobj');
         if (!localStorage.lastSavePath)
@@ -466,10 +505,10 @@ $('mask-canvas').addEventListener(
 
 enableMaskButton(false);
 enableDownloadButton(false);
-    
+
 chrome.runtime.getPlatformInfo(function(info) {
-    if(info.os=='win'){ 
-    addClass($('downloadButton'), 'button-win');        
+    if(info.os=='win'){
+    addClass($('downloadButton'), 'button-win');
     }
 });
 
@@ -480,8 +519,15 @@ chrome.runtime.getPlatformInfo(function(info) {
     var moreBtn = $('btnMore');
     var moreToolsList = $('more-tools');
     var printBtn = $('btnPrint');
-    var isMac = bg.screenshot.isThisPlatform('mac');
-    var isLinux = bg.screenshot.isThisPlatform('linux');
+
+    // Use chrome.runtime.getPlatformInfo instead of background page
+    chrome.runtime.getPlatformInfo(function(info) {
+        var isMac = info.os === 'mac';
+        var isLinux = info.os === 'linux';
+
+        // Platform-specific initialization code can go here
+        // (if any was needed from the original)
+    });
 })();
 
 var myVars = new Array();
