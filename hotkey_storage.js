@@ -1,60 +1,53 @@
-/*
 
-Read license.txt for licensing information.
+// Read license.txt for licensing information.
 
-*/
-
-var HotKey = (function() {
-  // In-memory storage for MV3 service worker compatibility
-  var memoryStorage = {
-    'hot_key_enabled': 'true',
-    'area_capture_hot_key': 'R',
-    'viewport_capture_hot_key': 'V',
-    'fullpage_capture_hot_key': 'H',
-    'screen_capture_hot_key': 'P'
+class HotKey {
+  static memoryStorage = {
+    hot_key_enabled: 'true',
+    area_capture_hot_key: 'R',
+    viewport_capture_hot_key: 'V',
+    fullpage_capture_hot_key: 'H',
+    screen_capture_hot_key: 'P',
   };
 
-  return {
-    setup: function(plugin) {
-      // For MV3 compatibility, we use defaults without localStorage
-      var screenCaptureHotKey = this.get('screen');
-      if (this.isEnabled() &&
-          plugin && !plugin.setHotKey(screenCaptureHotKey.charCodeAt(0))) {
-        this.set('screen', '@'); // Disable hot key for screen capture.
-      }
-    },
-
-    /**
-     * Set hot key by type.
-     * @param {String} type Hot key type, must be area/viewport/fullpage/screen.
-     * @param {String} value
-     */
-    set: function(type, value) {
-      var key = type + '_capture_hot_key';
-      memoryStorage[key] = value;
-    },
-
-    get: function(type) {
-      return memoryStorage[type + '_capture_hot_key'] || '';
-    },
-
-    getCharCode: function(type) {
-      return this.get(type).charCodeAt(0);
-    },
-
-    enable: function() {
-      memoryStorage['hot_key_enabled'] = 'true';
-    },
-
-    disable: function(bg) {
-      memoryStorage['hot_key_enabled'] = 'false';
-      if (bg && bg.plugin) {
-        bg.plugin.disableScreenCaptureHotKey();
-      }
-    },
-
-    isEnabled: function() {
-      return memoryStorage['hot_key_enabled'] === 'true';
+  static setup(plugin) {
+    // For MV3 compatibility, we use defaults without localStorage
+    const screenCaptureHotKey = HotKey.get('screen');
+    if (HotKey.isEnabled() && plugin && !plugin.setHotKey(screenCaptureHotKey.charCodeAt(0))) {
+      HotKey.set('screen', '@'); // Disable hot key for screen capture.
     }
   }
-})();
+
+  /**
+   * Set hot key by type.
+   * @param {String} type Hot key type, must be area/viewport/fullpage/screen.
+   * @param {String} value
+   */
+  static set(type, value) {
+    const key = `${type}_capture_hot_key`;
+    HotKey.memoryStorage[key] = value;
+  }
+
+  static get(type) {
+    return HotKey.memoryStorage[`${type}_capture_hot_key`] || '';
+  }
+
+  static getCharCode(type) {
+    return HotKey.get(type).charCodeAt(0);
+  }
+
+  static enable() {
+    HotKey.memoryStorage.hot_key_enabled = 'true';
+  }
+
+  static disable(bg) {
+    HotKey.memoryStorage.hot_key_enabled = 'false';
+    if (bg?.plugin) {
+      bg.plugin.disableScreenCaptureHotKey();
+    }
+  }
+
+  static isEnabled() {
+    return HotKey.memoryStorage.hot_key_enabled === 'true';
+  }
+}
