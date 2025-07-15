@@ -21,7 +21,6 @@ class ScreenshotServiceWorker {
 
     async createOffscreenDocument() {
         if (this.offscreenCreated) return;
-
         try {
             await chrome.offscreen.createDocument({
                 url: 'offscreen.html',
@@ -30,7 +29,7 @@ class ScreenshotServiceWorker {
             });
             this.offscreenCreated = true;
         } catch (error) {
-            console.error('Failed to create offscreen document:', error);
+            console.error(`Failed to create offscreen document:`, error);
         }
     }
 
@@ -61,12 +60,12 @@ class ScreenshotServiceWorker {
 
     addMessageListener() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-            console.log('Service worker received message:', request);
+            console.log(`Service worker received message:`, request);
             const obj = request;
             const hotKeyEnabled = HotKey.isEnabled();
-            const isFromPopup = !sender.tab; // Messages from popup don't have sender.tab
+            const isFromPopup = !sender.tab;
 
-            console.log('Message details:', {
+            console.log(`Message details:`, {
                 msg: obj.msg,
                 isFromPopup,
                 hotKeyEnabled,
@@ -84,7 +83,7 @@ class ScreenshotServiceWorker {
                             msg: 'scroll_next',
                             visibleWidth: obj.data.visibleWidth,
                             visibleHeight: obj.data.visibleHeight
-                        }, (response) => screenshot.onResponseVisibleSize(response));
+                        }, response => screenshot.onResponseVisibleSize(response));
                         break;
                 }
                 return true;
@@ -92,87 +91,80 @@ class ScreenshotServiceWorker {
 
             // Handle getCanvasData requests to offscreen document
             if (obj.target === 'offscreen' && obj.action === 'getCanvasData') {
-                this.sendToOffscreen(obj).then((response) => {
-                    sendResponse(response);
-                }).catch((error) => {
-                    console.error('Error forwarding getCanvasData request:', error);
-                    sendResponse({ error: 'Failed to get canvas data' });
-                });
-                return true; // Will respond asynchronously
+                this.sendToOffscreen(obj)
+                    .then(response => sendResponse(response))
+                    .catch(error => {
+                        console.error(`Error forwarding getCanvasData request:`, error);
+                        sendResponse({ error: 'Failed to get canvas data' });
+                    });
+                return true;
             }
 
             // Handle messages targeting the offscreen document
             if (obj.target === 'offscreen' && obj.action) {
-                console.log('Routing message to offscreen document:', obj);
-                chrome.runtime.sendMessage(obj, (response) => {
-                    console.log('Offscreen response:', response);
-                    if (sendResponse) {
-                        sendResponse(response);
-                    }
+                console.log(`Routing message to offscreen document:`, obj);
+                chrome.runtime.sendMessage(obj, response => {
+                    console.log(`Offscreen response:`, response);
+                    if (sendResponse) sendResponse(response);
                 });
                 return true;
             }
 
             // Handle messages from popup or content scripts
-            console.log('Checking message type:', obj.msg, 'against switch cases');
+            console.log(`Checking message type: ${obj.msg} against switch cases`);
             switch (obj.msg) {
                 case 'test_connection':
-                    console.log('Test connection message received');
-                    sendResponse({status: 'connected', timestamp: Date.now()});
+                    console.log(`Test connection message received`);
+                    sendResponse({ status: 'connected', timestamp: Date.now() });
                     break;
                 case 'capture_hot_key':
-                    console.log('Handling hotkey capture');
+                    console.log(`Handling hotkey capture`);
                     this.handleHotKey(obj.keyCode);
                     break;
                 case 'capture_selected':
-                    console.log('Handling selected capture');
+                    console.log(`Handling selected capture`);
                     this.captureSelected();
                     break;
                 case 'capture_window':
-                    console.log('Handling window capture - executing captureWindow()');
-                    // Allow capture from popup regardless of hotkey setting
+                    console.log(`Handling window capture - executing captureWindow()`);
                     if (isFromPopup || hotKeyEnabled) {
-                        console.log('Calling this.captureWindow()');
+                        console.log(`Calling this.captureWindow()`);
                         this.captureWindow();
                     } else {
-                        console.log('Capture blocked - isFromPopup:', isFromPopup, 'hotKeyEnabled:', hotKeyEnabled);
+                        console.log(`Capture blocked - isFromPopup: ${isFromPopup}, hotKeyEnabled: ${hotKeyEnabled}`);
                     }
                     break;
                 case 'capture_area':
-                    console.log('Handling area capture - executing showSelectionArea()');
-                    // Allow capture from popup regardless of hotkey setting
+                    console.log(`Handling area capture - executing showSelectionArea()`);
                     if (isFromPopup || hotKeyEnabled) {
-                        console.log('Calling this.showSelectionArea()');
+                        console.log(`Calling this.showSelectionArea()`);
                         this.showSelectionArea();
                     } else {
-                        console.log('Area capture blocked - isFromPopup:', isFromPopup, 'hotKeyEnabled:', hotKeyEnabled);
+                        console.log(`Area capture blocked - isFromPopup: ${isFromPopup}, hotKeyEnabled: ${hotKeyEnabled}`);
                     }
                     break;
                 case 'capture_webpage':
-                    console.log('Handling webpage capture - executing captureWebpage()');
-                    // Allow capture from popup regardless of hotkey setting
+                    console.log(`Handling webpage capture - executing captureWebpage()`);
                     if (isFromPopup || hotKeyEnabled) {
-                        console.log('Calling this.captureWebpage()');
+                        console.log(`Calling this.captureWebpage()`);
                         this.captureWebpage();
                     } else {
-                        console.log('Webpage capture blocked - isFromPopup:', isFromPopup, 'hotKeyEnabled:', hotKeyEnabled);
+                        console.log(`Webpage capture blocked - isFromPopup: ${isFromPopup}, hotKeyEnabled: ${hotKeyEnabled}`);
                     }
                     break;
                 case 'capture_screen':
-                    console.log('Handling screen capture');
+                    console.log(`Handling screen capture`);
                     this.captureScreen();
                     break;
                 case 'capture_special_page':
-                    console.log('Handling special page capture');
+                    console.log(`Handling special page capture`);
                     this.captureSpecialPage();
                     break;
                 case 'original_view_port_width':
-                    // In MV3, we don't have access to the original plugin functionality
-                    // So we return null to let the content script handle it
                     sendResponse(null);
                     break;
                 default:
-                    console.log('Unknown message:', obj.msg);
+                    console.log(`Unknown message: ${obj.msg}`);
                     break;
             }
             return true;
@@ -181,76 +173,58 @@ class ScreenshotServiceWorker {
 
     async sendMessage(message, callback) {
         try {
-            console.log('Sending message to content script:', message);
-            const tabs = await chrome.tabs.query({
-                active: true,
-                currentWindow: true
-            });
-
-            console.log('Found tabs:', tabs.length);
+            console.log(`Sending message to content script:`, message);
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tabs.length > 0) {
-                console.log('Sending message to tab:', tabs[0].id, tabs[0].url);
-                const response = await chrome.tabs.sendMessage(tabs[0].id, message);
-                console.log('Content script response:', response);
+                const { id, url } = tabs[0];
+                console.log(`Sending message to tab: ${id}, ${url}`);
+                const response = await chrome.tabs.sendMessage(id, message);
+                console.log(`Content script response:`, response);
                 if (callback) callback(response);
                 return response;
             }
         } catch (error) {
-            console.error('Error sending message to content script:', error);
+            console.error(`Error sending message to content script:`, error);
         }
     }
 
     showSelectionArea() {
-        this.sendMessage({
-            msg: 'show_selection_area'
-        });
+        this.sendMessage({ msg: 'show_selection_area' });
     }
 
     captureScreen() {
         // Screen capture functionality - may need special handling
-        console.log('Screen capture requested');
+        console.log(`Screen capture requested`);
     }
 
     captureWindow() {
-        console.log('captureWindow() method called');
-        this.sendMessage({
-            msg: 'capture_window'
-        }, (response) => this.onResponseVisibleSize(response));
+        console.log(`captureWindow() method called`);
+        this.sendMessage({ msg: 'capture_window' }, response => this.onResponseVisibleSize(response));
     }
 
     captureSelected() {
-        this.sendMessage({
-            msg: 'capture_selected'
-        }, (response) => this.onResponseVisibleSize(response));
+        this.sendMessage({ msg: 'capture_selected' }, response => this.onResponseVisibleSize(response));
     }
 
     captureWebpage() {
-        this.sendMessage({
-            msg: 'scroll_init'
-        }, (response) => this.onResponseVisibleSize(response));
+        this.sendMessage({ msg: 'scroll_init' }, response => this.onResponseVisibleSize(response));
     }
 
     async onResponseVisibleSize(response) {
-        console.log('onResponseVisibleSize called with response:', response);
+        console.log(`onResponseVisibleSize called with response:`, response);
         if (!response) {
-            console.log('No response received from content script');
+            console.log(`No response received from content script`);
             return;
         }
 
         await this.ensureOffscreenDocument();
 
         switch (response.msg) {
-            case 'capture_window':
-                console.log('Processing capture_window response, capturing screenshot...');
+            case 'capture_window': {
+                console.log(`Processing capture_window response, capturing screenshot...`);
                 try {
-                    // First capture the visible area
-                    const dataUrl = await chrome.tabs.captureVisibleTab(null, {
-                        format: 'png',
-                        quality: 50
-                    });
-                    console.log('Screenshot captured, sending to offscreen...');
-
-                    // Then send to offscreen document with the screenshot data
+                    const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 50 });
+                    console.log(`Screenshot captured, sending to offscreen...`);
                     this.sendToOffscreen({
                         action: 'captureVisible',
                         data: {
@@ -260,11 +234,11 @@ class ScreenshotServiceWorker {
                         }
                     });
                 } catch (error) {
-                    console.error('Error capturing screenshot:', error);
+                    console.error(`Error capturing screenshot:`, error);
                 }
                 break;
-            case 'scroll_init_done':
-                // Store scroll data in chrome.storage.session
+            }
+            case 'scroll_init_done': {
                 await chrome.storage.session.set({
                     scrollData: {
                         startX: response.startX,
@@ -282,49 +256,39 @@ class ScreenshotServiceWorker {
                         zoom: response.zoom
                     }
                 });
-
                 setTimeout(() => this.captureAndScroll(), 800);
                 break;
-            case 'scroll_next_done':
-                // Update scroll counts
-                const scrollData = await chrome.storage.session.get('scrollData');
-                if (scrollData.scrollData) {
-                    scrollData.scrollData.scrollXCount = response.scrollXCount;
-                    scrollData.scrollData.scrollYCount = response.scrollYCount;
-                    await chrome.storage.session.set({scrollData: scrollData.scrollData});
+            }
+            case 'scroll_next_done': {
+                const { scrollData } = await chrome.storage.session.get('scrollData');
+                if (scrollData) {
+                    scrollData.scrollXCount = response.scrollXCount;
+                    scrollData.scrollYCount = response.scrollYCount;
+                    await chrome.storage.session.set({ scrollData });
                 }
                 setTimeout(() => this.captureAndScroll(), 800);
                 break;
-            case 'scroll_finished':
+            }
+            case 'scroll_finished': {
                 this.captureAndScrollDone();
                 break;
+            }
         }
     }
 
     async captureSpecialPage() {
         try {
-            const dataUrl = await chrome.tabs.captureVisibleTab(null, {
-                format: 'png',
-                quality: 50
-            });
-
+            const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 50 });
             await this.ensureOffscreenDocument();
-            this.sendToOffscreen({
-                action: 'processSpecialPage',
-                data: { dataUrl }
-            });
+            this.sendToOffscreen({ action: 'processSpecialPage', data: { dataUrl } });
         } catch (error) {
-            console.error('Error capturing special page:', error);
+            console.error(`Error capturing special page:`, error);
         }
     }
 
     async capturePortion(x, y, width, height, visibleWidth, visibleHeight, docWidth, docHeight) {
         try {
-            const dataUrl = await chrome.tabs.captureVisibleTab(null, {
-                format: 'png',
-                quality: 50
-            });
-
+            const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 50 });
             await this.ensureOffscreenDocument();
             this.sendToOffscreen({
                 action: 'capturePortion',
@@ -336,17 +300,13 @@ class ScreenshotServiceWorker {
                 }
             });
         } catch (error) {
-            console.error('Error capturing portion:', error);
+            console.error(`Error capturing portion:`, error);
         }
     }
 
     async captureVisible(docWidth, docHeight) {
         try {
-            const dataUrl = await chrome.tabs.captureVisibleTab(null, {
-                format: 'png',
-                quality: 50
-            });
-
+            const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 50 });
             await this.ensureOffscreenDocument();
             this.sendToOffscreen({
                 action: 'captureVisible',
@@ -357,33 +317,23 @@ class ScreenshotServiceWorker {
                 }
             });
         } catch (error) {
-            console.error('Error capturing visible area:', error);
+            console.error(`Error capturing visible area:`, error);
         }
     }
 
     async captureAndScroll() {
         try {
-            // Ensure we don't exceed rate limits
             const now = Date.now();
             const timeSinceLastCapture = now - this.lastCaptureTime;
-
             if (timeSinceLastCapture < this.minCaptureInterval) {
                 const waitTime = this.minCaptureInterval - timeSinceLastCapture;
                 console.log(`Rate limiting: waiting ${waitTime}ms before next capture`);
                 await new Promise(resolve => setTimeout(resolve, waitTime));
             }
-
-            console.log('Capturing screenshot for full page...');
+            console.log(`Capturing screenshot for full page...`);
             this.lastCaptureTime = Date.now();
-
-            const dataUrl = await chrome.tabs.captureVisibleTab(null, {
-                format: 'png',
-                quality: 50
-            });
-
-            const scrollDataResult = await chrome.storage.session.get('scrollData');
-            const scrollData = scrollDataResult.scrollData;
-
+            const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 50 });
+            const { scrollData } = await chrome.storage.session.get('scrollData');
             await this.ensureOffscreenDocument();
             this.sendToOffscreen({
                 action: 'captureAndScroll',
@@ -393,30 +343,25 @@ class ScreenshotServiceWorker {
                 }
             });
         } catch (error) {
-            console.error('Error in captureAndScroll:', error);
-
-            // If we hit the rate limit, wait longer and retry
+            console.error(`Error in captureAndScroll:`, error);
             if (error.message.includes('MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND')) {
-                console.log('Rate limit exceeded, waiting 3 seconds before retry...');
+                console.log(`Rate limit exceeded, waiting 3 seconds before retry...`);
                 setTimeout(() => this.captureAndScroll(), 3000);
             }
         }
     }
 
     captureAndScrollDone() {
-        this.sendToOffscreen({
-            action: 'captureAndScrollDone',
-            data: {}
-        });
+        this.sendToOffscreen({ action: 'captureAndScrollDone', data: {} });
     }
 
     async sendToOffscreen(message) {
-        console.log('Sending message to offscreen document:', message);
+        console.log(`Sending message to offscreen document:`, message);
         try {
             await chrome.runtime.sendMessage(message);
-            console.log('Message sent to offscreen successfully');
+            console.log(`Message sent to offscreen successfully`);
         } catch (error) {
-            console.error('Error sending to offscreen:', error);
+            console.error(`Error sending to offscreen:`, error);
         }
     }
 
@@ -424,89 +369,63 @@ class ScreenshotServiceWorker {
         try {
             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
             this.tab = tabs[0];
-
-            // Store tab title for contrast analyzer
             await chrome.storage.session.set({ tabTitle: tabs[0].title });
-
-            await chrome.tabs.create({
-                url: 'contrast-analyzer.html'
-            });
+            await chrome.tabs.create({ url: 'contrast-analyzer.html' });
         } catch (error) {
-            console.error('Error posting image:', error);
+            console.error(`Error posting image:`, error);
         }
     }
 
     isThisPlatform(operationSystem) {
-        return navigator.userAgent.toLowerCase().indexOf(operationSystem) > -1;
+        return navigator.userAgent.toLowerCase().includes(operationSystem);
     }
 
     async executeScriptsInExistingTabs() {
         try {
             const windows = await chrome.windows.getAll();
-
             for (const win of windows) {
                 const tabs = await chrome.tabs.query({ windowId: win.id });
-
                 for (const tab of tabs) {
-                    // Skip tabs that can't be scripted
-                    if (!tab.url ||
-                        tab.url.startsWith('chrome://') ||
-                        tab.url.startsWith('chrome-extension://') ||
-                        tab.url.startsWith('moz-extension://') ||
-                        tab.url.startsWith('about:') ||
-                        tab.url.startsWith('edge://') ||
-                        tab.url.startsWith('opera://') ||
-                        tab.status !== 'complete') {
+                    const { url, status, id } = tab;
+                    if (!url ||
+                        url.startsWith('chrome://') ||
+                        url.startsWith('chrome-extension://') ||
+                        url.startsWith('moz-extension://') ||
+                        url.startsWith('about:') ||
+                        url.startsWith('edge://') ||
+                        url.startsWith('opera://') ||
+                        status !== 'complete') {
                         continue;
                     }
-
                     try {
-                        // Check if we can inject scripts into this tab
-                        await chrome.scripting.executeScript({
-                            target: { tabId: tab.id },
-                            files: ['page.js']
-                        });
-                        await chrome.scripting.executeScript({
-                            target: { tabId: tab.id },
-                            files: ['shortcut.js']
-                        });
+                        await chrome.scripting.executeScript({ target: { tabId: id }, files: ['page.js'] });
+                        await chrome.scripting.executeScript({ target: { tabId: id }, files: ['shortcut.js'] });
                     } catch (error) {
-                        // Silently skip tabs that can't be scripted (error pages, restricted pages, etc.)
-                        // This is expected behavior for some tabs
                         if (error.message.includes('Cannot access') ||
                             error.message.includes('error page') ||
                             error.message.includes('chrome://') ||
                             error.message.includes('restricted')) {
                             continue;
                         }
-                        // Log unexpected errors for debugging
-                        console.warn('Unexpected error executing scripts in tab:', tab.id, tab.url, error.message);
+                        console.warn(`Unexpected error executing scripts in tab: ${id}, ${url}, ${error.message}`);
                     }
                 }
             }
         } catch (error) {
-            console.error('Error executing scripts in existing tabs:', error);
+            console.error(`Error executing scripts in existing tabs:`, error);
         }
     }
 
     async init() {
-        // Initialize hotkey system
         HotKey.setup(null);
-
-        // Migrate localStorage to chrome.storage.session
         const savePath = await chrome.storage.session.get('savePath');
         if (!savePath.savePath) {
             await chrome.storage.session.set({ savePath: '' });
         }
-
         const quality = await chrome.storage.session.get('screenshootQuality');
         if (!quality.screenshootQuality) {
             await chrome.storage.session.set({ screenshootQuality: 'png' });
         }
-
-        // Message listener is already set up in constructor
-
-        // Delay script execution to avoid issues with tabs that aren't ready
         setTimeout(() => {
             this.executeScriptsInExistingTabs();
         }, 1000);
