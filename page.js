@@ -5,7 +5,7 @@ Read license.txt for licensing information.
 */
 
 
-var page = {
+const page = {
   startX: 150,
   startY: 150,
   endX: 400,
@@ -34,7 +34,7 @@ var page = {
   originalViewPortWidth: document.documentElement.clientWidth,
   defaultScrollBarWidth: 17, // Default scroll bar width on windows platform.
 
-  hookBodyScrollValue: function(needHook) {
+  hookBodyScrollValue(needHook) {
     document.documentElement.setAttribute(
         "__screen_capture_need_hook_scroll_value__", needHook);
     var event = document.createEvent('Event');
@@ -45,27 +45,27 @@ var page = {
   /**
    * Determine if the page scrolled to bottom or right.
    */
-  isScrollToPageEnd: function(coordinate) {
-    var body = document.body;
-    var docElement = document.documentElement;
-    if (coordinate == 'x')
-      return docElement.clientWidth + body.scrollLeft == body.scrollWidth;
-    else if (coordinate == 'y')
-      return docElement.clientHeight + body.scrollTop == body.scrollHeight;
+  isScrollToPageEnd(coordinate) {
+    const body = document.body;
+    const docElement = document.documentElement;
+    if (coordinate === 'x')
+      return docElement.clientWidth + body.scrollLeft === body.scrollWidth;
+    else if (coordinate === 'y')
+      return docElement.clientHeight + body.scrollTop === body.scrollHeight;
   },
 
   /**
    * Detect if the view port is located to the corner of page.
    */
-  detectPagePosition: function() {
-    var body = document.body;
-    var pageScrollTop = body.scrollTop;
-    var pageScrollLeft = body.scrollLeft;
-    if (pageScrollTop == 0 && pageScrollLeft == 0) {
+  detectPagePosition() {
+    const body = document.body;
+    const pageScrollTop = body.scrollTop;
+    const pageScrollLeft = body.scrollLeft;
+    if (pageScrollTop === 0 && pageScrollLeft === 0) {
       return 'top_left';
-    } else if (pageScrollTop == 0 && this.isScrollToPageEnd('x')) {
+    } else if (pageScrollTop === 0 && this.isScrollToPageEnd('x')) {
       return 'top_right';
-    } else if (this.isScrollToPageEnd('y') && pageScrollLeft == 0) {
+    } else if (this.isScrollToPageEnd('y') && pageScrollLeft === 0) {
       return 'bottom_left';
     } else if (this.isScrollToPageEnd('y') && this.isScrollToPageEnd('x')) {
       return 'bottom_right';
@@ -79,15 +79,15 @@ var page = {
    * @return {String|Object} Return position of the element in the view port:
    *   top_left, top_right, bottom_left, bottom_right, or null.
    */
-  detectCapturePositionOfFixedElement: function(elem) {
-    var docElement = document.documentElement;
-    var viewPortWidth = docElement.clientWidth;
-    var viewPortHeight = docElement.clientHeight;
-    var offsetWidth = elem.offsetWidth;
-    var offsetHeight = elem.offsetHeight;
-    var offsetTop = elem.offsetTop;
-    var offsetLeft = elem.offsetLeft;
-    var result = [];
+  detectCapturePositionOfFixedElement(elem) {
+    const docElement = document.documentElement;
+    const viewPortWidth = docElement.clientWidth;
+    const viewPortHeight = docElement.clientHeight;
+    const offsetWidth = elem.offsetWidth;
+    const offsetHeight = elem.offsetHeight;
+    const offsetTop = elem.offsetTop;
+    const offsetLeft = elem.offsetLeft;
+    const result = [];
 
     // Compare distance between element and the edge of view port to determine
     // the capture position of element.
@@ -103,13 +103,13 @@ var page = {
     }
 
     // If the element is out of view port, then ignore.
-    if (result.length != 2)
+    if (result.length !== 2)
       return null;
     return result.join('_');
   },
 
-  restoreFixedElements: function() {
-    this.fixedElements_.forEach(function(element) {
+  restoreFixedElements() {
+    this.fixedElements_.forEach(element => {
       element[1].style.visibility = 'visible';
     });
     this.fixedElements_ = [];
@@ -118,24 +118,24 @@ var page = {
   /**
    * Iterate DOM tree and cache visible fixed-position elements.
    */
-  cacheVisibleFixedPositionedElements: function() {
-    var nodeIterator = document.createNodeIterator(
+  cacheVisibleFixedPositionedElements() {
+    const nodeIterator = document.createNodeIterator(
         document.documentElement,
         NodeFilter.SHOW_ELEMENT,
         null,
         false
     );
-    var currentNode;
+    let currentNode;
     while (currentNode = nodeIterator.nextNode()) {
-      var nodeComputedStyle =
+      const nodeComputedStyle =
           document.defaultView.getComputedStyle(currentNode, "");
       // Skip nodes which don't have computeStyle or are invisible.
       if (!nodeComputedStyle)
         continue;
-      if (nodeComputedStyle.position == "fixed" &&
-          nodeComputedStyle.display != 'none' &&
-          nodeComputedStyle.visibility != 'hidden') {
-        var position =
+      if (nodeComputedStyle.position === "fixed" &&
+          nodeComputedStyle.display !== 'none' &&
+          nodeComputedStyle.visibility !== 'hidden') {
+        const position =
           this.detectCapturePositionOfFixedElement(currentNode);
         if (position)
           this.fixedElements_.push([position, currentNode]);
@@ -144,103 +144,96 @@ var page = {
   },
 
   // Handle fixed-position elements for capture.
-  handleFixedElements: function(capturePosition) {
-    var docElement = document.documentElement;
-    var body = document.body;
+  handleFixedElements(capturePosition) {
+    const docElement = document.documentElement;
+    const body = document.body;
 
     // If page has no scroll bar, then return directly.
-    if (docElement.clientHeight == body.scrollHeight &&
-        docElement.clientWidth == body.scrollWidth)
+    if (docElement.clientHeight === body.scrollHeight &&
+        docElement.clientWidth === body.scrollWidth)
       return;
 
     if (!this.fixedElements_.length) {
       this.cacheVisibleFixedPositionedElements();
     }
 
-    this.fixedElements_.forEach(function(element) {
-      if (element[0] == capturePosition)
+    this.fixedElements_.forEach(element => {
+      if (element[0] === capturePosition)
         element[1].style.visibility = 'visible';
       else
         element[1].style.visibility = 'hidden';
     });
   },
 
-  handleSecondToLastCapture: function() {
-    var docElement = document.documentElement;
-    var body = document.body;
-    var bottomPositionElements = [];
-    var rightPositionElements = [];
-    var that = this;
-    this.fixedElements_.forEach(function(element) {
-      var position = element[0];
-      if (position == 'bottom_left' || position == 'bottom_right') {
+  handleSecondToLastCapture() {
+    const docElement = document.documentElement;
+    const body = document.body;
+    const bottomPositionElements = [];
+    const rightPositionElements = [];
+    this.fixedElements_.forEach(element => {
+      const position = element[0];
+      if (position === 'bottom_left' || position === 'bottom_right') {
         bottomPositionElements.push(element[1]);
-      } else if (position == 'bottom_right' || position == 'top_right') {
+      } else if (position === 'bottom_right' || position === 'top_right') {
         rightPositionElements.push(element[1]);
       }
     });
 
     // Determine if the current capture is last but one.
-    var remainingCaptureHeight = body.scrollHeight - docElement.clientHeight -
-      body.scrollTop;
-    if (remainingCaptureHeight > 0 &&
-        remainingCaptureHeight < docElement.clientHeight) {
-      bottomPositionElements.forEach(function(element) {
+    const remainingCaptureHeight = body.scrollHeight - docElement.clientHeight - body.scrollTop;
+    if (remainingCaptureHeight > 0 && remainingCaptureHeight < docElement.clientHeight) {
+      bottomPositionElements.forEach(element => {
         if (element.offsetHeight > remainingCaptureHeight) {
           element.style.visibility = 'visible';
-          var originalBottom = window.getComputedStyle(element).bottom;
-          that.modifiedBottomRightFixedElements.push(
-            ['bottom', element, originalBottom]);
-          element.style.bottom = -remainingCaptureHeight + 'px';
+          const originalBottom = window.getComputedStyle(element).bottom;
+          this.modifiedBottomRightFixedElements.push([
+            'bottom', element, originalBottom
+          ]);
+          element.style.bottom = `${-remainingCaptureHeight}px`;
         }
       });
     }
 
-    var remainingCaptureWidth = body.scrollWidth - docElement.clientWidth -
-      body.scrollLeft;
-    if (remainingCaptureWidth > 0 &&
-        remainingCaptureWidth < docElement.clientWidth) {
-      rightPositionElements.forEach(function(element) {
+    const remainingCaptureWidth = body.scrollWidth - docElement.clientWidth - body.scrollLeft;
+    if (remainingCaptureWidth > 0 && remainingCaptureWidth < docElement.clientWidth) {
+      rightPositionElements.forEach(element => {
         if (element.offsetWidth > remainingCaptureWidth) {
           element.style.visibility = 'visible';
-          var originalRight = window.getComputedStyle(element).right;
-          that.modifiedBottomRightFixedElements.push(
-            ['right', element, originalRight]);
-          element.style.right = -remainingCaptureWidth + 'px';
+          const originalRight = window.getComputedStyle(element).right;
+          this.modifiedBottomRightFixedElements.push([
+            'right', element, originalRight
+          ]);
+          element.style.right = `${-remainingCaptureWidth}px`;
         }
       });
     }
   },
 
-  restoreBottomRightOfFixedPositionElements: function() {
-    this.modifiedBottomRightFixedElements.forEach(function(data) {
-      var property = data[0];
-      var element = data[1];
-      var originalValue = data[2];
+  restoreBottomRightOfFixedPositionElements() {
+    this.modifiedBottomRightFixedElements.forEach(data => {
+      const [property, element, originalValue] = data;
       element.style[property] = originalValue;
     });
     this.modifiedBottomRightFixedElements = [];
   },
 
-  hideAllFixedPositionedElements: function() {
-    this.fixedElements_.forEach(function(element) {
+  hideAllFixedPositionedElements() {
+    this.fixedElements_.forEach(element => {
       element[1].style.visibility = 'hidden';
     });
   },
 
-  hasScrollBar: function(axis) {
-    var body = document.body;
-    var docElement = document.documentElement;
-    if (axis == 'x') {
-      if (window.getComputedStyle(body).overflowX == 'scroll')
+  hasScrollBar(axis) {
+    const body = document.body;
+    const docElement = document.documentElement;
+    if (axis === 'x') {
+      if (window.getComputedStyle(body).overflowX === 'scroll')
         return true;
-      return Math.abs(body.scrollWidth - docElement.clientWidth) >=
-          page.defaultScrollBarWidth;
-    } else if (axis == 'y') {
-      if (window.getComputedStyle(body).overflowY == 'scroll')
+      return Math.abs(body.scrollWidth - docElement.clientWidth) >= page.defaultScrollBarWidth;
+    } else if (axis === 'y') {
+      if (window.getComputedStyle(body).overflowY === 'scroll')
         return true;
-      return Math.abs(body.scrollHeight - docElement.clientHeight) >=
-          page.defaultScrollBarWidth;
+      return Math.abs(body.scrollHeight - docElement.clientHeight) >= page.defaultScrollBarWidth;
     }
   },
 
@@ -908,23 +901,20 @@ var isPageCapturable = function() {
   return !page.checkPageIsOnlyEmbedElement();
 };
 
-function $(id) {
-  return document.getElementById(id);
-}
+const $ = id => document.getElementById(id);
 
 page.init();
 
-window.addEventListener('resize', function() {
+window.addEventListener('resize', () => {
   if (page.isSelectionAreaTurnOn) {
     page.removeSelectionArea();
     page.showSelectionArea();
   }
-
   // Reget original width of view port if browser window resized or page zoomed.
   page.getOriginalViewPortWidth();
 }, false);
 
-// Send page url for retriving and parsing access token for facebook and picasa.
+// Send page url for retrieving and parsing access token for facebook and picasa.
 page.sendMessage({
   msg: 'url_for_access_token',
   url: window.location.href
