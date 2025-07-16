@@ -382,10 +382,11 @@ const page = {
   */
   scrollInit: function(startX, startY, canvasWidth, canvasHeight, type) {
     this.hookBodyScrollValue(true);
-    page.captureHeight = canvasHeight;
-    page.captureWidth = canvasWidth;
-    var docWidth = document.body.scrollWidth;
-    var docHeight = document.body.scrollHeight;
+    const pixelRatio = window.devicePixelRatio || 1;
+    page.captureHeight = canvasHeight * pixelRatio;
+    page.captureWidth = canvasWidth * pixelRatio;
+    var docWidth = document.body.scrollWidth * pixelRatio;
+    var docHeight = document.body.scrollHeight * pixelRatio;
     window.scrollTo(startX, startY);
 
     this.handleFixedElements('top_left');
@@ -393,30 +394,29 @@ const page = {
 
     if (page.isGMailPage() && type == 'captureWhole') {
       var frame = document.getElementById('canvas_frame');
-      docHeight = page.captureHeight = canvasHeight =
-          frame.contentDocument.height;
-      docWidth = page.captureWidth = canvasWidth = frame.contentDocument.width;
+      docHeight = page.captureHeight = canvasHeight = frame.contentDocument.height * pixelRatio;
+      docWidth = page.captureWidth = canvasWidth = frame.contentDocument.width * pixelRatio;
       frame.contentDocument.body.scrollTop = 0;
       frame.contentDocument.body.scrollLeft = 0;
       page.handleRightFloatBoxInGmail();
     }
     page.scrollXCount = 0;
     page.scrollYCount = 1;
-    page.scrollX = window.scrollX; // document.body.scrollLeft
-    page.scrollY = window.scrollY;
+    page.scrollX = window.scrollX * pixelRatio; // document.body.scrollLeft
+    page.scrollY = window.scrollY * pixelRatio;
     var viewPortSize = page.getViewPortSize();
     return {
       'msg': 'scroll_init_done',
-      'startX': page.calculateSizeAfterZooming(startX),
-      'startY': page.calculateSizeAfterZooming(startY),
-      'scrollX': window.scrollX,
-      'scrollY': window.scrollY,
+      'startX': page.calculateSizeAfterZooming(startX) * pixelRatio,
+      'startY': page.calculateSizeAfterZooming(startY) * pixelRatio,
+      'scrollX': window.scrollX * pixelRatio,
+      'scrollY': window.scrollY * pixelRatio,
       'docHeight': docHeight,
       'docWidth': docWidth,
-      'visibleWidth': viewPortSize.width,
-      'visibleHeight': viewPortSize.height,
-      'canvasWidth': canvasWidth,
-      'canvasHeight': canvasHeight,
+      'visibleWidth': viewPortSize.width * pixelRatio,
+      'visibleHeight': viewPortSize.height * pixelRatio,
+      'canvasWidth': canvasWidth * pixelRatio,
+      'canvasHeight': canvasHeight * pixelRatio,
       'scrollXCount': 0,
       'scrollYCount': 0,
       'zoom': page.getZoomLevel()
@@ -475,12 +475,13 @@ const page = {
   },
 
   getWindowSize: function() {
-    var docWidth = document.width;
-    var docHeight = document.height;
+    const pixelRatio = window.devicePixelRatio || 1;
+    var docWidth = document.width * pixelRatio;
+    var docHeight = document.height * pixelRatio;
     if (page.isGMailPage()) {
       var frame = document.getElementById('canvas_frame');
-      docHeight = frame.contentDocument.height;
-      docWidth = frame.contentDocument.width;
+      docHeight = frame.contentDocument.height * pixelRatio;
+      docWidth = frame.contentDocument.width * pixelRatio;
     }
     return {'msg':'capture_window',
             'docWidth': docWidth,
@@ -490,16 +491,17 @@ const page = {
   getSelectionSize: function() {
     page.removeSelectionArea();
     setTimeout(function() {
+      const pixelRatio = window.devicePixelRatio || 1;
       page.sendMessage({
         'msg': 'capture_selected',
-        'x': page.startX,
-        'y': page.startY,
-        'width': page.endX - page.startX,
-        'height': page.endY - page.startY,
-        'visibleWidth': document.documentElement.clientWidth,
-        'visibleHeight': document.documentElement.clientHeight,
-        'docWidth': document.width,
-        'docHeight': document.height
+        'x': page.startX * pixelRatio,
+        'y': page.startY * pixelRatio,
+        'width': (page.endX - page.startX) * pixelRatio,
+        'height': (page.endY - page.startY) * pixelRatio,
+        'visibleWidth': document.documentElement.clientWidth * pixelRatio,
+        'visibleHeight': document.documentElement.clientHeight * pixelRatio,
+        'docWidth': document.width * pixelRatio,
+        'docHeight': document.height * pixelRatio
       })}, 100);
   },
 
@@ -830,8 +832,9 @@ const page = {
   * Refresh the size info
   */
   updateSize: function() {
-    var width = Math.abs(page.endX - page.startX);
-    var height = Math.abs(page.endY - page.startY);
+    const pixelRatio = window.devicePixelRatio || 1;
+    var width = Math.abs(page.endX - page.startX) * pixelRatio;
+    var height = Math.abs(page.endY - page.startY) * pixelRatio;
     $('sc_drag_size').innerText = page.calculateSizeAfterZooming(width) +
       ' x ' + page.calculateSizeAfterZooming(height);
   },
