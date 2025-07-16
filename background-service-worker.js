@@ -58,12 +58,12 @@ class ScreenshotServiceWorker {
 
     addMessageListener() {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-            const obj = request;
+            const { msg, keyCode } = request;
             const hotKeyEnabled = HotKey.isEnabled();
 
-            switch (obj.msg) {
+            switch (msg) {
                 case 'capture_hot_key':
-                    this.handleHotKey(obj.keyCode);
+                    this.handleHotKey(keyCode);
                     break;
                 case 'capture_selected':
                     this.captureSelected();
@@ -84,7 +84,7 @@ class ScreenshotServiceWorker {
                     }
                     break;
                 case 'original_view_port_width':
-                    // Handle if needed
+                    // No action needed
                     break;
             }
             return true;
@@ -93,18 +93,15 @@ class ScreenshotServiceWorker {
 
     async sendMessage(message, callback) {
         try {
-            const tabs = await chrome.tabs.query({
-                active: true,
-                currentWindow: true
-            });
-
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tabs.length > 0) {
-                const response = await chrome.tabs.sendMessage(tabs[0].id, message);
+                const [tab] = tabs;
+                const response = await chrome.tabs.sendMessage(tab.id, message);
                 if (callback) callback(response);
                 return response;
             }
         } catch (error) {
-            console.error('Error sending message:', error);
+            console.error(`Error sending message: ${error}`);
         }
     }
 
@@ -256,10 +253,7 @@ class ScreenshotServiceWorker {
                 format: 'png',
                 quality: 50
             });
-
-            const scrollDataResult = await chrome.storage.session.get('scrollData');
-            const scrollData = scrollDataResult.scrollData;
-
+            const { scrollData } = await chrome.storage.session.get('scrollData');
             await this.ensureOffscreenDocument();
             this.sendToOffscreen({
                 action: 'captureAndScroll',
@@ -269,7 +263,7 @@ class ScreenshotServiceWorker {
                 }
             });
         } catch (error) {
-            console.error('Error in captureAndScroll:', error);
+            console.error(`Error in captureAndScroll: ${error}`);
         }
     }
 
@@ -308,10 +302,8 @@ class ScreenshotServiceWorker {
     async executeScriptsInExistingTabs() {
         try {
             const windows = await chrome.windows.getAll();
-
             for (const win of windows) {
                 const tabs = await chrome.tabs.query({ windowId: win.id });
-
                 for (const tab of tabs) {
                     if (!tab.url.startsWith('chrome://')) {
                         try {
@@ -324,13 +316,13 @@ class ScreenshotServiceWorker {
                                 files: ['shortcut.js']
                             });
                         } catch (error) {
-                            console.error('Error executing scripts in tab:', tab.id, error);
+                            console.error(`Error executing scripts in tab ${tab.id}: ${error}`);
                         }
                     }
                 }
             }
         } catch (error) {
-            console.error('Error executing scripts in existing tabs:', error);
+            console.error(`Error executing scripts in existing tabs: ${error}`);
         }
     }
 
@@ -362,13 +354,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'imageProcessed':
                 screenshot.postImage();
                 break;
-            case 'scrollNext':
+            case 'scrollNext': {
+                const { visibleWidth, visibleHeight } = message.data;
                 screenshot.sendMessage({
                     msg: 'scroll_next',
-                    visibleWidth: message.data.visibleWidth,
-                    visibleHeight: message.data.visibleHeight
-                }, (response) => screenshot.onResponseVisibleSize(response));
+                    visibleWidth,
+                    visibleHeight
+                }, response => screenshot.onResponseVisibleSize(response));
                 break;
+            }
         }
     }
 });
