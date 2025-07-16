@@ -5,7 +5,7 @@ Read license.txt for licensing information.
 */
 
 // Import HotKey utilities
-importScripts('hotkey_storage.js');
+importScripts('hotkey-storage.js');
 
 // Service Worker for Manifest V3
 class ScreenshotServiceWorker {

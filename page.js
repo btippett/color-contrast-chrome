@@ -887,7 +887,7 @@ const page = {
     }
     this.injectCssResource('style.css');
     this.addMessageListener();
-    this.injectJavaScriptResource("page_context.js");
+    this.injectJavaScriptResource("page-context.js");
 
     // Retrieve original width of view port and cache.
     page.getOriginalViewPortWidth();

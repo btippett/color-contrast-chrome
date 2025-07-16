@@ -22,7 +22,7 @@
       "matches": [ "http://*/*", "https://*/*", "ftp://*/*", "file://*/*" ],
       "run_at": "document_end"
    }, {
-      "js": [ "isLoad.js" ],
+      "js": [ "is-loaded.js" ],
       "matches": [ "http://*/*", "https://*/*", "ftp://*/*", "file://*/*" ],
       "run_at": "document_start"
    } ],
@@ -54,7 +54,7 @@
    ],
 
    "web_accessible_resources": [ {
-      "resources": [ "page_context.js", "style.css" ],
+      "resources": [ "page-context.js", "style.css" ],
       "matches": [ "<all_urls>" ]
    } ]
 }
