@@ -62,6 +62,8 @@ function setupImageAnalysis() {
                 radius = 3;
                 break;
         }
+        // Set status to 'Analyzing image…' at start
+        document.getElementById('statusDetails').innerHTML = 'Analyzing image…';
         startAnalysis(level, radius);
     });
 
@@ -79,6 +81,9 @@ function setupImageAnalysis() {
 function draw() {
     console.log('Drawing contrast mask...');
     const startTime = performance.now();
+
+    // Set status to 'Rendering mask…' when mask rendering starts
+    document.getElementById('statusDetails').innerHTML = 'Rendering mask…';
 
     const existingMask = document.getElementById('contrastMask');
     if (existingMask) {
@@ -146,6 +151,9 @@ function draw() {
 
         document.getElementById('photo').style.display = 'block';
 
+        // Set status to 'Complete' when mask is ready
+        document.getElementById('statusDetails').innerHTML = 'Complete';
+
         const event = new CustomEvent('contrastMaskReady', {
             detail: { canvas: canv }
         });
@@ -174,9 +182,9 @@ const myWorker = new Worker('background-image-analysis.js');
 myWorker.onmessage = (oEvent) => {
     if (oEvent.data.status !== undefined) {
         if (oEvent.data.status === 'done') {
-            document.getElementById('percentComplete').innerHTML = 'Rendering mask...';
+            // Mask rendering will update status, so do nothing here
         } else {
-            document.getElementById('percentComplete').innerHTML = `${oEvent.data.status}%`;
+            document.getElementById('statusDetails').innerHTML = `Analyzing image… (${oEvent.data.status}%)`;
         }
     }
 
@@ -184,7 +192,6 @@ myWorker.onmessage = (oEvent) => {
         image = new Uint8Array(oEvent.data.data);
         draw();
         myWorker.terminate();
-        document.getElementById('percentComplete').innerHTML = 'Complete';
         enableMaskButton(true);
         enableDownloadButton(true);
     }
@@ -192,7 +199,7 @@ myWorker.onmessage = (oEvent) => {
     try {
         const obj = JSON.parse(oEvent.data);
         if (obj.status !== undefined) {
-            document.getElementById('percentComplete').innerHTML = `${obj.status}%`;
+            document.getElementById('statusDetails').innerHTML = `Analyzing image… (${obj.status}%)`;
         }
     } catch (e) {}
 };
