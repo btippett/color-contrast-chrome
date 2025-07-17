@@ -525,17 +525,13 @@ const page = {
   createSelectionArea: function() {
     var areaProtector = $('sc_drag_area_protector');
     var zoom = page.getZoomLevel();
-    var bodyStyle = window.getComputedStyle(document.body, null);
-    if ('relative' == bodyStyle['position']) {
-      page.marginTop = page.matchMarginValue(bodyStyle['marginTop']);
-      page.marginLeft = page.matchMarginValue(bodyStyle['marginLeft']);
-      areaProtector.style.top =  - parseInt(page.marginTop) + 'px';
-      areaProtector.style.left =  - parseInt(page.marginLeft) + 'px';
-    }
-    areaProtector.style.width =
-      Math.round((document.width + parseInt(page.marginLeft)) / zoom) + 'px';
-    areaProtector.style.height =
-      Math.round((document.height + parseInt(page.marginTop)) / zoom) + 'px';
+    // Make protector cover the entire scrollable document, not just viewport
+    areaProtector.style.position = 'absolute';
+    areaProtector.style.top = '0px';
+    areaProtector.style.left = '0px';
+    areaProtector.style.width = Math.round(document.body.scrollWidth / zoom) + 'px';
+    areaProtector.style.height = Math.round(document.body.scrollHeight / zoom) + 'px';
+    areaProtector.style.zIndex = 2147483647;
     areaProtector.onclick = function(event) {
       event.stopPropagation();
       return false;
@@ -579,17 +575,21 @@ const page = {
       page.sendMessage({msg: 'capture_selected'});
     }, false);
 
-    page.pageHeight = $('sc_drag_area_protector').clientHeight;
-    page.pageWidth = $('sc_drag_area_protector').clientWidth;
+    // Use scrollWidth/scrollHeight for full page selection
+    page.pageHeight = document.body.scrollHeight;
+    page.pageWidth = document.body.scrollWidth;
 
     var areaElement = $('sc_drag_area');
-    areaElement.style.left = page.getElementLeft(areaElement) + 'px';
-    areaElement.style.top = page.getElementTop(areaElement) + 'px';
+    // Center selection area in viewport
+    var viewportLeft = window.scrollX;
+    var viewportTop = window.scrollY;
+    areaElement.style.left = (viewportLeft + (document.documentElement.clientWidth - 250) / 2) + 'px';
+    areaElement.style.top = (viewportTop + (document.documentElement.clientHeight - 150) / 2) + 'px';
 
-    page.startX = page.getElementLeft(areaElement);
-    page.startY = page.getElementTop(areaElement);
-    page.endX = page.getElementLeft(areaElement) + 250;
-    page.endY = page.getElementTop(areaElement) + 150;
+    page.startX = parseInt(areaElement.style.left);
+    page.startY = parseInt(areaElement.style.top);
+    page.endX = page.startX + 250;
+    page.endY = page.startY + 150;
 
     areaElement.style.width = '250px';
     areaElement.style.height = '150px';
