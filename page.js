@@ -387,7 +387,10 @@ const page = {
     page.captureWidth = canvasWidth * pixelRatio;
     var docWidth = document.body.scrollWidth * pixelRatio;
     var docHeight = document.body.scrollHeight * pixelRatio;
-    window.scrollTo(startX, startY);
+    // Only scroll for full-page capture
+    if (type === 'captureWhole') {
+      window.scrollTo(startX, startY);
+    }
 
     this.handleFixedElements('top_left');
     this.handleSecondToLastCapture();
