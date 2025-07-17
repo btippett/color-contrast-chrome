@@ -533,7 +533,7 @@ const page = {
       Math.round((document.width + parseInt(page.marginLeft)) / zoom) + 'px';
     areaProtector.style.height =
       Math.round((document.height + parseInt(page.marginTop)) / zoom) + 'px';
-    areaProtector.onclick = function() {
+    areaProtector.onclick = function(event) {
       event.stopPropagation();
       return false;
     };
