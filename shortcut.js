@@ -34,7 +34,15 @@ var shortcutKey = {
   },
 
   sendMessage: function(message) {
-    chrome.runtime.sendMessage(message);
+    try {
+      chrome.runtime.sendMessage(message, function(response) {
+        if (chrome.runtime.lastError) {
+          console.warn('Service worker communication error:', chrome.runtime.lastError);
+        }
+      });
+    } catch (error) {
+      console.warn('Error sending message to service worker:', error);
+    }
   }
 };
 

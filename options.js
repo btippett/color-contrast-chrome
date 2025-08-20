@@ -6,7 +6,8 @@ Read license.txt for licensing information.
 
 
 
-var bg = chrome.extension.getBackgroundPage();
+// Remove background page access for MV3 compatibility
+// var bg = chrome.extension.getBackgroundPage();
 
 function $(id) {
   return document.getElementById(id);
@@ -21,7 +22,7 @@ function init() {
   i18nReplace('optionTitle', 'options');
   i18nReplace('saveAndClose', 'save_and_close');
   i18nReplace('WCAGLevel', 'wcag_level');
-  
+
   i18nReplace('WCAG-aa-small-level', 'wcag_aa_small_level');
   i18nReplace('WCAG-aa-large-level', 'wcag_aa_large_level');
   i18nReplace('WCAG-aaa-small-level', 'wcag_aaa_small_level');
@@ -29,7 +30,7 @@ function init() {
 
   i18nReplace('pixelRadiusHeader', 'pixel_radius_header');
   i18nReplace('pixel-radius-label', 'pixel_radius_label');
-  
+
   $('saveAndClose').addEventListener('click', saveAndClose);
   initScreenCaptureQuality();
   //HotKeySetting.setup();
@@ -56,10 +57,11 @@ function save() {
 
 function saveAndClose() {
   if (save()) {
-    chrome.tabs.getSelected(null, function(tab) {
-      chrome.tabs.remove(tab.id);
+    // Use chrome.tabs.query instead of chrome.tabs.getSelected
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      chrome.tabs.remove(tabs[0].id);
     });
-    }
+  }
 }
 
 function initScreenCaptureQuality() {
@@ -76,7 +78,7 @@ function initScreenCaptureQuality() {
 		$('WCAG-aa-small').checked = true;
 	}
 
-	
+
 	});
 
 	chrome.storage.sync.get('pixelRadius', function(obj) {
@@ -88,7 +90,7 @@ function initScreenCaptureQuality() {
 			$('pixel-radius-input').value = obj['pixelRadius']
 		}
 
-	});	
+	});
 }
 
 function i18nReplace(id, name) {

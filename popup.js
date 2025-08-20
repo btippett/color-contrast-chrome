@@ -1,43 +1,40 @@
 /*
- 
+
  Read license.txt for licensing information.
- 
+
  */
-function trapEnterKey(obj, evt, f) {
+
+const trapEnterKey = (obj, evt, f) => {
     // if enter key pressed
-    if (evt.which == 13) {
-        // fire the user passed event
+    if (evt.which === 13) {
         f();
         evt.preventDefault();
     }
-}
+};
 
-function $(id) {
-    return document.getElementById(id);
-}
+const $ = (id) => document.getElementById(id);
 
-function isWindowsOrLinuxPlatform() {
-    return navigator.userAgent.toLowerCase().indexOf('windows') > -1 ||
-            navigator.userAgent.toLowerCase().indexOf('linux') > -1;
-}
+const isWindowsOrLinuxPlatform = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.includes('windows') || ua.includes('linux');
+};
 
-var isWindowsOrLinux = isWindowsOrLinuxPlatform();
+const isWindowsOrLinux = isWindowsOrLinuxPlatform();
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    if (request.msg == 'page_capturable') {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.msg === 'page_capturable') {
         $('tip').style.display = 'none';
         $('captureSpecialPageItem').style.display = 'none';
         if (isWindowsOrLinux) {
-            //$('captureScreenItem').style.display = 'block';
+            // ...existing code...
         }
         $('captureWindowItem').style.display = 'block';
         $('captureAreaItem').style.display = 'block';
         $('captureWebpageItem').style.display = 'block';
-    } else if (request.msg == 'page_uncapturable') {
+    } else if (request.msg === 'page_uncapturable') {
         i18nReplace('tip', 'special');
         if (isWindowsOrLinux) {
-            //$('captureScreenItem').style.display = 'block';
-            //$('tip').style.display = 'none';
+            // ...existing code...
         } else {
             $('tip').style.display = 'block';
         }
@@ -49,43 +46,54 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     return true;
 });
 
-function toDo(what) {
-    chrome.runtime.getBackgroundPage(function(backgroundPage) {
-        switch (what) {
-            case 'capture_screen':
-                backgroundPage.screenshot.captureScreen();
-                window.close();
-                break;
-            case 'capture_window':
-                backgroundPage.screenshot.captureWindow();
-                window.close();
-                break;
-            case 'capture_area':
-                backgroundPage.screenshot.showSelectionArea();
-                window.close();
-                break;
-            case 'capture_webpage':
-                backgroundPage.screenshot.captureWebpage();
-                $('loadDiv').style.display = 'block';
-                $('item').style.display = 'none';
-                break;
-            case 'capture_special_page':
-                backgroundPage.screenshot.captureSpecialPage();
-                window.close();
-                break;
+const toDo = (what) => {
+    console.log(`Popup sending message: ${what}`);
+
+    chrome.runtime.sendMessage({
+        msg: what,
+        target: 'background'
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error(`Error sending message: ${chrome.runtime.lastError.message}`);
+        } else {
+            console.log('Message sent successfully, response:', response);
         }
     });
-}
 
-function i18nReplace(id, name) {
-    return $(id).innerHTML = chrome.i18n.getMessage(name);
-}
+    switch (what) {
+        case 'capture_screen':
+        case 'capture_window':
+        case 'capture_area':
+        case 'capture_special_page':
+            window.close();
+            break;
+        case 'capture_webpage':
+            $('loadDiv').style.display = 'block';
+            $('item').style.display = 'none';
+            break;
+    }
+};
 
-function resizeDivWidth(id, width) {
-    $(id).style.width = width + "px";
-}
+const i18nReplace = (id, name) => $(id).innerHTML = chrome.i18n.getMessage(name);
 
-function init() {
+const resizeDivWidth = (id, width) => {
+    $(id).style.width = `${width}px`;
+};
+
+const init = () => {
+    console.log('Popup initialized, testing service worker connection...');
+
+    chrome.runtime.sendMessage({
+        msg: 'test_connection',
+        target: 'background'
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error(`Service worker connection test failed: ${chrome.runtime.lastError.message}`);
+        } else {
+            console.log('Service worker connection test successful:', response);
+        }
+    });
+
     i18nReplace('captureSpecialPageText', 'capture_window_warning');
     i18nReplace('capturing', 'capturing');
     i18nReplace('captureScreenText', 'capture_screen');
@@ -94,80 +102,69 @@ function init() {
     i18nReplace('captureWebpageText', 'capture_webpage');
     i18nReplace('optionItem', 'option');
 
-    $('option').addEventListener('click', function() {
-        chrome.tabs.create({url: 'options.html'});
+    $('option').addEventListener('click', () => {
+        chrome.tabs.create({ url: 'options.html' });
     }, false);
-    
+
     $('option').addEventListener('keydown', function(e) {
-        trapEnterKey(this, e, function() {
-            chrome.tabs.create({url: 'options.html'});
-        })
+        trapEnterKey(this, e, () => {
+            chrome.tabs.create({ url: 'options.html' });
+        });
     }, false);
-    
-    
+
     if (HotKey.isEnabled()) {
         $('captureWindowShortcut').style.display = 'inline';
         $('captureAreaShortcut').style.display = 'inline';
         $('captureWebpageShortcut').style.display = 'inline';
         if (isWindowsOrLinux)
             $('captureScreenShortcut').style.display = 'inline';
-        document.body.style.minWidth = "190px"
+        document.body.style.minWidth = '190px';
     } else {
         $('captureWindowShortcut').style.display = 'none';
         $('captureAreaShortcut').style.display = 'none';
         $('captureWebpageShortcut').style.display = 'none';
         if (isWindowsOrLinux)
             $('captureScreenShortcut').style.display = 'none';
-        document.body.style.minWidth = "140px";
+        document.body.style.minWidth = '140px';
     }
-    var isScriptLoad = false;
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        if (tabs[0].url.indexOf('chrome') == 0 || tabs[0].url.indexOf('about') == 0) {
+
+    let isScriptLoad = false;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0].url.indexOf('chrome') === 0 || tabs[0].url.indexOf('about') === 0) {
             i18nReplace('tip', 'special');
             if (isWindowsOrLinux) {
-                //$('captureScreenItem').style.display = 'block';
-                //$('tip').style.display = 'none';
+                // ...existing code...
             }
             return;
         } else {
             $('tip').style.display = 'none';
             $('captureSpecialPageItem').style.display = 'block';
             if (isWindowsOrLinux) {
-                //$('captureScreenItem').style.display = 'block';
+                // ...existing code...
             }
             showOption();
         }
 
-        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-
-            chrome.tabs.sendMessage(tabs[0].id, {msg: 'is_page_capturable'},
-            function(response) {
-
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, { msg: 'is_page_capturable' }, (response) => {
                 isScriptLoad = true;
-                if (response.msg == 'capturable') {
+                if (response.msg === 'capturable') {
                     $('tip').style.display = 'none';
                     if (isWindowsOrLinux) {
-                        //$('captureScreenItem').style.display = 'block';
+                        // ...existing code...
                     }
                     $('captureSpecialPageItem').style.display = 'none';
                     $('captureWindowItem').style.display = 'block';
                     $('captureAreaItem').style.display = 'block';
                     $('captureWebpageItem').style.display = 'block';
-                    var textWidth = $('captureWindowText')['scrollWidth'];
+                    const textWidth = $('captureWindowText').scrollWidth;
                     resizeDivWidth('captureWindowText', textWidth);
                     resizeDivWidth('captureAreaText', textWidth);
                     resizeDivWidth('captureWebpageText', textWidth);
-                    var bg = chrome.extension.getBackgroundPage();
-                    //if (bg.screenshot.isThisPlatform('mac')) {
-                    //$('captureAreaShortcut').innerText = '\u2325\u2318R';
-                    //$('captureWindowShortcut').innerText = '\u2325\u2318V';
-                    //$('captureWebpageShortcut').innerText = '\u2325\u2318H';
-                    //}
-                } else if (response.msg == 'uncapturable') {
+                } else if (response.msg === 'uncapturable') {
                     i18nReplace('tip', 'special');
                     if (isWindowsOrLinux) {
-                        //$('captureScreenItem').style.display = 'block';
-                        //$('tip').style.display = 'none';
+                        // ...existing code...
                     } else {
                         $('tip').style.display = 'block';
                     }
@@ -177,13 +174,11 @@ function init() {
             });
         });
     });
-    //chrome.tabs.executeScript(null, {file: 'isLoad.js'});
 
-    var insertScript = function() {
-        if (isScriptLoad == false) {
-            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-                if (tabs[0].url.indexOf('chrome') == 0 ||
-                        tabs[0].url.indexOf('about') == 0) {
+    const insertScript = () => {
+        if (!isScriptLoad) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0].url.indexOf('chrome') === 0 || tabs[0].url.indexOf('about') === 0) {
                     i18nReplace('tip', 'special');
                 } else {
                     $('tip').style.display = 'none';
@@ -192,85 +187,83 @@ function init() {
                 }
             });
             if (isWindowsOrLinux) {
-                //$('captureScreenItem').style.display = 'block';
-                //$('tip').style.display = 'none';
+                // ...existing code...
             }
         }
-        var captureItems = document.querySelectorAll('li.menuI');
-        var showSeparator = false;
-        for (var i = 0; i < captureItems.length; i++) {
-            if (window.getComputedStyle(captureItems[i]).display != 'none') {
+        const captureItems = document.querySelectorAll('li.menuI');
+        let showSeparator = false;
+        for (let i = 0; i < captureItems.length; i++) {
+            if (window.getComputedStyle(captureItems[i]).display !== 'none') {
                 showSeparator = true;
                 break;
             }
         }
         $('separatorItem').style.display = showSeparator ? 'block' : 'none';
-    }
+    };
+
     setTimeout(insertScript, 500);
 
     // Update hot key.
-    if (HotKey.get('area') != '@')
-        $('captureAreaShortcut').innerText = 'Ctrl+Alt+' + HotKey.get('area');
-    if (HotKey.get('viewport') != '@') {
-        $('captureWindowShortcut').innerText = 'Ctrl+Alt+' +
-                HotKey.get('viewport');
+    if (HotKey.get('area') !== '@')
+        $('captureAreaShortcut').innerText = `Ctrl+Alt+${HotKey.get('area')}`;
+    if (HotKey.get('viewport') !== '@') {
+        $('captureWindowShortcut').innerText = `Ctrl+Alt+${HotKey.get('viewport')}`;
     }
-    if (HotKey.get('fullpage') != '@') {
-        $('captureWebpageShortcut').innerText = 'Ctrl+Alt+' +
-                HotKey.get('fullpage');
+    if (HotKey.get('fullpage') !== '@') {
+        $('captureWebpageShortcut').innerText = `Ctrl+Alt+${HotKey.get('fullpage')}`;
     }
-    if (HotKey.get('screen') != '@')
-        $('captureScreenShortcut').innerText = 'Ctrl+Alt+' + HotKey.get('screen');
+    if (HotKey.get('screen') !== '@')
+        $('captureScreenShortcut').innerText = `Ctrl+Alt+${HotKey.get('screen')}`;
 
     if (isWindowsOrLinux) {
         showOption();
     }
 
-    $('captureSpecialPageItem').addEventListener('click', function(e) {
+    $('captureSpecialPageItem').addEventListener('click', () => {
         toDo('capture_special_page');
     });
     $('captureSpecialPageItem').addEventListener('keydown', function(e) {
-        trapEnterKey(this, e, function() {
+        trapEnterKey(this, e, () => {
             toDo('capture_special_page');
-        })
+        });
     });
-    $('captureAreaItem').addEventListener('click', function(e) {
+    $('captureAreaItem').addEventListener('click', () => {
         toDo('capture_area');
     });
     $('captureAreaItem').addEventListener('keydown', function(e) {
-        trapEnterKey(this, e, function() {
+        trapEnterKey(this, e, () => {
             toDo('capture_area');
-        })
+        });
     });
-    $('captureWindowItem').addEventListener('click', function(e) {
+    $('captureWindowItem').addEventListener('click', () => {
         toDo('capture_window');
     });
     $('captureWindowItem').addEventListener('keydown', function(e) {
-        trapEnterKey(this, e, function() {
+        trapEnterKey(this, e, () => {
             toDo('capture_window');
-        })
+        });
     });
-    $('captureWebpageItem').addEventListener('click', function(e) {
+    $('captureWebpageItem').addEventListener('click', () => {
         toDo('capture_webpage');
     });
     $('captureWebpageItem').addEventListener('keydown', function(e) {
-        trapEnterKey(this, e, function() {
+        trapEnterKey(this, e, () => {
             toDo('capture_webpage');
-        })
+        });
     });
-    $('captureScreenItem').addEventListener('click', function(e) {
+    $('captureScreenItem').addEventListener('click', () => {
         toDo('capture_screen');
     });
     $('captureScreenItem').addEventListener('keydown', function(e) {
-        trapEnterKey(this, e, function() {
+        trapEnterKey(this, e, () => {
             toDo('capture_screen');
-        })
+        });
     });
-}
+};
 
-function showOption() {
+const showOption = () => {
     $('option').style.display = 'block';
     $('separatorItem').style.display = 'block';
-}
+};
 
 document.addEventListener('DOMContentLoaded', init);

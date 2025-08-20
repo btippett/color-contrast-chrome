@@ -91,7 +91,7 @@ ul {
 #pixelRadius {display:inline;margin-left:20px;font-weight:bold;}
 #rescanButton {display:inline;margin-left:20px;}
 
-#percentComplete {font-weight:normal;}
+#statusDetails {font-weight:normal;}
 #levelEvaluatedText {font-weight:normal;}
 #pixelRadiusText {font-weight:normal;}
 #help{display:inline;float:right;padding-top:6px;padding-right:10px;}
